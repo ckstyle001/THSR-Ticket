@@ -20,7 +20,7 @@ class ConfirmTicketFlow:
         ticket_model = ConfirmTicketModel(
             personal_id=self.set_personal_id(),
             phone_num=self.set_phone_num(),
-            member_radio=_parse_member_radio(page),
+            # member_radio=_parse_member_radio(page),
         )
 
         json_params = ticket_model.json(by_alias=True)

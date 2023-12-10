@@ -1,5 +1,6 @@
 import io
 import json
+import ddddocr
 from PIL import Image
 from typing import Tuple
 from datetime import date, timedelta
@@ -20,9 +21,10 @@ from thsr_ticket.configs.common import (
 
 
 class FirstPageFlow:
-    def __init__(self, client: HTTPRequest, record: Record = None) -> None:
+    def __init__(self, client: HTTPRequest, record: Record = None, date: str = None) -> None:
         self.client = client
         self.record = record
+        self.date = date
 
     def run(self) -> Tuple[Response, BookingModel]:
         # First page. Booking options
@@ -69,6 +71,8 @@ class FirstPageFlow:
         )
 
     def select_date(self, date_type: str) -> str:
+        if self.date:
+            return str(self.date)
         today = date.today()
         last_avail_date = today + timedelta(days=DAYS_BEFORE_BOOKING_AVAILABLE)
         print(f'選擇{date_type}日期（{today}~{last_avail_date}）（預設為今日）：')
@@ -140,7 +144,18 @@ def _parse_search_by(page: BeautifulSoup) -> str:
 
 
 def _input_security_code(img_resp: bytes) -> str:
-    print('輸入驗證碼：')
+    # print('輸入驗證碼：')
     image = Image.open(io.BytesIO(img_resp))
-    image.show()
-    return input()
+    # image.show()
+    # return input()
+    
+    image.save("check_image.png")
+    ocr = ddddocr.DdddOcr(show_ad=False, beta=True)
+
+    with open("check_image.png", 'rb') as f:
+        read_image = f.read()
+
+    res = ocr.classification(read_image)
+    print("驗證碼: {}".format(res))
+
+    return str(res)

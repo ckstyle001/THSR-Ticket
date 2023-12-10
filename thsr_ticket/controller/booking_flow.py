@@ -21,23 +21,26 @@ class BookingFlow:
         self.error_feedback = ErrorFeedback()
         self.show_error_msg = ShowErrorMsg()
 
-    def run(self) -> Response:
-        self.show_history()
+    def run(self, outbound_date: str = None, history_index: int = None) -> bool:
+        self.show_history(history_index)
 
         # First page. Booking options
-        book_resp, book_model = FirstPageFlow(client=self.client, record=self.record).run()
+        book_resp, book_model = FirstPageFlow(client=self.client, record=self.record, date=outbound_date).run()
         if self.show_error(book_resp.content):
-            return book_resp
+            return False
+            # return book_resp
 
         # Second page. Train confirmation
         train_resp, train_model = ConfirmTrainFlow(self.client, book_resp).run()
         if self.show_error(train_resp.content):
-            return train_resp
+            return False
+            # return train_resp
 
         # Final page. Ticket confirmation
         ticket_resp, ticket_model = ConfirmTicketFlow(self.client, train_resp, self.record).run()
         if self.show_error(ticket_resp.content):
-            return ticket_resp
+            return False
+            # return ticket_resp
 
         # Result page.
         result_model = BookingResult().parse(ticket_resp.content)
@@ -46,13 +49,17 @@ class BookingFlow:
         print("\n請使用官方提供的管道完成後續付款以及取票!!")
 
         self.db.save(book_model, ticket_model)
-        return ticket_resp
+        return True
+        # return ticket_resp
 
-    def show_history(self) -> None:
+    def show_history(self, auto_index: int) -> None:
         hist = self.db.get_history()
         if not hist:
             return
-        h_idx = history_info(hist)
+        if auto_index is not None:
+            h_idx = auto_index - 1
+        else:
+            h_idx = history_info(hist)
         if h_idx is not None:
             self.record = hist[h_idx]
 
